@@ -1,40 +1,45 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from config import REQUIRED_CHANNELS
+
+from config import (
+    BREAKING_CHANNEL,
+    FOOTBALL_CHANNEL,
+    WORLD_CHANNEL,
+    REQUIRED_CHANNELS,
+)
+
+
+def channel_url(username: str) -> str:
+    return f"https://t.me/{username.replace('@', '')}"
 
 
 def join_keyboard():
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
-
             [
                 InlineKeyboardButton(
                     text="📢 Breaking Sports News",
-                    url="https://t.me/breakingsportsnews"
+                    url=channel_url(BREAKING_CHANNEL),
                 )
             ],
-
             [
                 InlineKeyboardButton(
                     text="⚽ Football Daily News",
-                    url="https://t.me/footballdnews"
+                    url=channel_url(FOOTBALL_CHANNEL),
                 )
             ],
-
             [
                 InlineKeyboardButton(
                     text="🏆 Sports World Update",
-                    url="https://t.me/sportworldupdate"
+                    url=channel_url(WORLD_CHANNEL),
                 )
             ],
-
             [
                 InlineKeyboardButton(
                     text="✅ I've Joined",
-                    callback_data="verify_join"
+                    callback_data="verify_join",
                 )
-            ]
-
+            ],
         ]
     )
 
@@ -47,20 +52,14 @@ async def has_joined_all(bot, user_id):
 
             member = await bot.get_chat_member(
                 chat_id=channel,
-                user_id=user_id
+                user_id=user_id,
             )
 
-            if member.status in [
-                "left",
-                "kicked"
-            ]:
-
+            if member.status in ("left", "kicked"):
                 return False
 
         return True
 
     except Exception as e:
-
-        print(e)
-
+        print(f"Membership check failed: {e}")
         return False
