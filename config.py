@@ -3,18 +3,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ==========================
-# BOT
-# ==========================
+# =====================================================
+# BOT CONFIGURATION
+# =====================================================
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+
+ADMIN_ID = int(os.getenv("ADMIN_ID", "8856521475"))
 
 CHECK_INTERVAL = 30
 
-# ==========================
-# CHANNELS
-# ==========================
+# =====================================================
+# TELEGRAM CHANNELS
+# =====================================================
 
 BREAKING_CHANNEL = os.getenv(
     "BREAKING_CHANNEL",
@@ -37,26 +38,27 @@ REQUIRED_CHANNELS = [
     WORLD_CHANNEL,
 ]
 
-# ==========================
+# =====================================================
 # RSS FEEDS
-# ==========================
+# =====================================================
 
 CHANNEL_FEEDS = {
 
+    # GENERAL SPORTS NEWS
     BREAKING_CHANNEL: [
 
         "https://feeds.bbci.co.uk/sport/rss.xml",
 
-        "https://www.espn.com/espn/rss/news",
-
     ],
 
+    # FOOTBALL ONLY
     FOOTBALL_CHANNEL: [
 
         "https://feeds.bbci.co.uk/sport/football/rss.xml",
 
     ],
 
+    # NBA + TENNIS + OTHER SPORTS
     WORLD_CHANNEL: [
 
         "https://www.nba.com/rss/nba_rss.xml",
@@ -64,5 +66,16 @@ CHANNEL_FEEDS = {
         "https://www.atptour.com/en/media/rss-feed/xml",
 
     ],
-
 }
+
+# =====================================================
+# MESSAGE SETTINGS
+# =====================================================
+
+POST_TITLE = "🏆 SPORTS NEWS"
+
+ENABLE_PREVIEW = True
+
+MAX_ARTICLES_PER_FEED = 10
+
+REQUEST_TIMEOUT = 15
