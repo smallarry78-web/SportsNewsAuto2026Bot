@@ -1,18 +1,30 @@
 import hashlib
-import feedparser
 import html
+import feedparser
+
 from database import db
-from config import CHANNEL_FEEDS
+from config import (
+    CHANNEL_FEEDS,
+    POST_TITLE,
+    MAX_ARTICLES_PER_FEED,
+)
 
 
 class RSSFetcher:
 
     @staticmethod
-    def article_id(link: str):
-        return hashlib.md5(link.encode()).hexdigest()
+    def article_id(link: str) -> str:
+        return hashlib.md5(link.encode("utf-8")).hexdigest()
 
     @staticmethod
-    def hashtags(title: str):
+    def clean(text: str) -> str:
+        if not text:
+            return ""
+
+        return html.unescape(text).strip()
+
+    @staticmethod
+    def hashtags(title: str) -> str:
 
         title = title.lower()
 
@@ -77,32 +89,17 @@ class RSSFetcher:
         return " ".join(tags)
 
     @staticmethod
-    def clean(text):
-
-        if not text:
-            return ""
-
-        text = html.unescape(text)
-
-        return text.strip()
-
-    @staticmethod
     def build_message(entry):
 
         title = RSSFetcher.clean(entry.title)
-
         link = entry.link
 
-        tags = RSSFetcher.hashtags(title)
-
-        return f"""🏆 <b>SPORTS NEWS</b>
-
-📰 <b>{title}</b>
-
-👉 <a href="{link}">Read Full Story</a>
-
-{tags}
-"""
+        return (
+            f"🏆 <b>{POST_TITLE}</b>\n\n"
+            f"📰 <b>{title}</b>\n\n"
+            f"👉 <a href=\"{link}\">Read Full Story</a>\n\n"
+            f"{RSSFetcher.hashtags(title)}"
+        )
 
     @staticmethod
     def fetch_new_articles():
@@ -120,21 +117,29 @@ class RSSFetcher:
                     if not rss.entries:
                         continue
 
-                    for entry in rss.entries[:10]:
+                    for entry in rss.entries[:MAX_ARTICLES_PER_FEED]:
+
+                        if not getattr(entry, "title", None):
+                            continue
+
+                        if not getattr(entry, "link", None):
+                            continue
 
                         uid = RSSFetcher.article_id(entry.link)
 
                         if db.is_posted(uid, channel):
                             continue
 
-                        articles.append({
-                            "channel": channel,
-                            "id": uid,
-                            "message": RSSFetcher.build_message(entry)
-                        })
+                        articles.append(
+                            {
+                                "channel": channel,
+                                "id": uid,
+                                "message": RSSFetcher.build_message(entry),
+                            }
+                        )
 
                 except Exception as e:
 
-                    print(e)
+                    print(f"RSS Error: {e}")
 
         return articles
