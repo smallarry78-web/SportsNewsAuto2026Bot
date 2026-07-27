@@ -88,7 +88,9 @@ async def verify(callback: CallbackQuery):
         await callback.answer(
             "❌ Please join all three channels first.",
             show_alert=True,
-        )# ==========================================
+        )
+
+# ==========================================
 # RSS POSTING ENGINE
 # ==========================================
 
@@ -157,10 +159,12 @@ async def users(message: Message):
 
     await message.answer(
         f"👥 Total Users: <b>{total}</b>"
-    )# ==========================================
+    )
+
+
+# ==========================================
 # STARTUP
 # ==========================================
-
 async def on_startup():
 
     logging.info("====================================")
