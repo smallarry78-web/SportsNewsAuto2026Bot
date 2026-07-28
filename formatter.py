@@ -1,4 +1,5 @@
 import html
+import re
 from urllib.parse import urlparse
 
 from config import (
@@ -7,26 +8,28 @@ from config import (
     WORLD_CHANNEL,
 )
 
+from news_type import NewsType
+
 
 class Formatter:
 
     @staticmethod
     def clean(text: str) -> str:
+        """Remove HTML tags and clean text."""
+
         if not text:
             return ""
 
         text = html.unescape(text)
 
-        text = text.replace("<p>", "")
-        text = text.replace("</p>", "")
-        text = text.replace("<br>", "")
-        text = text.replace("<br/>", "")
-        text = text.replace("<br />", "")
+        text = re.sub(r"<[^>]+>", "", text)
+        text = re.sub(r"\s+", " ", text)
 
         return text.strip()
 
     @staticmethod
-    def summary(entry) -> str:
+    def get_summary(entry) -> str:
+        """Get RSS summary."""
 
         summary = ""
 
@@ -38,13 +41,14 @@ class Formatter:
 
         summary = Formatter.clean(summary)
 
-        if len(summary) > 220:
-            summary = summary[:220].rsplit(" ", 1)[0] + "..."
+        if len(summary) > 250:
+            summary = summary[:250].rsplit(" ", 1)[0] + "..."
 
         return summary
 
     @staticmethod
-    def source(link: str) -> str:
+    def get_source(link: str) -> str:
+        """Detect source website."""
 
         domain = urlparse(link).netloc.lower()
 
@@ -63,48 +67,46 @@ class Formatter:
         if "atptour" in domain:
             return "ATP Tour"
 
+        if "goal.com" in domain:
+            return "Goal"
+
+        if "skysports" in domain:
+            return "Sky Sports"
+
         return domain.replace("www.", "").title()
 
     @staticmethod
-    def channel_brand(channel):
+    def get_footer(channel):
 
         if channel == BREAKING_CHANNEL:
-            return {
-                "header": "🚨 BREAKING SPORTS",
-                "footer": "📡 @breakingsportsnews"
-            }
+            return "📡 @breakingsportsnews"
 
         if channel == FOOTBALL_CHANNEL:
-            return {
-                "header": "⚽ FOOTBALL DAILY",
-                "footer": "⚽ @footballdnews"
-            }
+            return "⚽ @footballdnews"
 
         if channel == WORLD_CHANNEL:
-            return {
-                "header": "🏆 SPORTS WORLD",
-                "footer": "🏆 @sportworldupdate"
-            }
+            return "🏀 @sportworldupdate"
 
-        return {
-            "header": "🏆 SPORTS NEWS",
-            "footer": ""
-        }
+        return "🏆 Sports News"
 
     @staticmethod
-    def build(channel, entry, hashtags):
+    def build_message(channel, entry, hashtags):
 
-        brand = Formatter.channel_brand(channel)
+        title = Formatter.clean(getattr(entry, "title", ""))
 
-        title = Formatter.clean(entry.title)
+        summary = Formatter.get_summary(entry)
 
-        summary = Formatter.summary(entry)
+        source = Formatter.get_source(getattr(entry, "link", ""))
 
-        source = Formatter.source(entry.link)
+        news_type = NewsType.detect(title)
+
+        footer = Formatter.get_footer(channel)
+
+        link = getattr(entry, "link", "")
 
         message = (
-            f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"{brand['header']}\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"{news_type}\n\n"
             f"📰 <b>{title}</b>\n\n"
         )
 
@@ -113,10 +115,10 @@ class Formatter:
 
         message += (
             f"📰 <b>Source:</b> {source}\n\n"
-            f"🔗 <a href=\"{entry.link}\">Read Full Story</a>\n\n"
+            f"🔗 <a href=\"{link}\">Read Full Story</a>\n\n"
             f"{hashtags}\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"{brand['footer']}"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"{footer}"
         )
 
         return message
