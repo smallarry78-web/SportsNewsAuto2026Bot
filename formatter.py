@@ -9,13 +9,14 @@ from config import (
 )
 
 from news_type import NewsType
+from team_detector import TeamDetector
+from league_detector import LeagueDetector
 
 
 class Formatter:
 
     @staticmethod
-    def clean(text: str) -> str:
-        """Remove HTML tags and clean text."""
+    def clean(text: str):
 
         if not text:
             return ""
@@ -23,13 +24,13 @@ class Formatter:
         text = html.unescape(text)
 
         text = re.sub(r"<[^>]+>", "", text)
+
         text = re.sub(r"\s+", " ", text)
 
         return text.strip()
 
     @staticmethod
-    def get_summary(entry) -> str:
-        """Get RSS summary."""
+    def get_summary(entry):
 
         summary = ""
 
@@ -47,8 +48,7 @@ class Formatter:
         return summary
 
     @staticmethod
-    def get_source(link: str) -> str:
-        """Detect source website."""
+    def get_source(link):
 
         domain = urlparse(link).netloc.lower()
 
@@ -58,14 +58,14 @@ class Formatter:
         if "espn" in domain:
             return "ESPN"
 
-        if "reuters" in domain:
-            return "Reuters"
-
         if "nba.com" in domain:
             return "NBA"
 
         if "atptour" in domain:
             return "ATP Tour"
+
+        if "reuters" in domain:
+            return "Reuters"
 
         if "goal.com" in domain:
             return "Goal"
@@ -85,24 +85,32 @@ class Formatter:
             return "⚽ @footballdnews"
 
         if channel == WORLD_CHANNEL:
-            return "🏀 @sportworldupdate"
+            return "🏆 @sportworldupdate"
 
         return "🏆 Sports News"
 
     @staticmethod
     def build_message(channel, entry, hashtags):
 
-        title = Formatter.clean(getattr(entry, "title", ""))
+        title = Formatter.clean(
+            getattr(entry, "title", "")
+        )
 
         summary = Formatter.get_summary(entry)
 
-        source = Formatter.get_source(getattr(entry, "link", ""))
+        source = Formatter.get_source(
+            getattr(entry, "link", "")
+        )
+
+        link = getattr(entry, "link", "")
 
         news_type = NewsType.detect(title)
 
-        footer = Formatter.get_footer(channel)
+        teams = TeamDetector.detect(title)
 
-        link = getattr(entry, "link", "")
+        leagues = LeagueDetector.detect(title)
+
+        footer = Formatter.get_footer(channel)
 
         message = (
             "━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -111,10 +119,28 @@ class Formatter:
         )
 
         if summary:
-            message += f"📝 {summary}\n\n"
+
+            message += (
+                f"📝 {summary}\n\n"
+            )
+
+        if leagues:
+
+            message += (
+                "🏆 <b>Competition</b>\n"
+                f"{', '.join(leagues)}\n\n"
+            )
+
+        if teams:
+
+            message += (
+                "👥 <b>Teams</b>\n"
+                f"{' • '.join(teams)}\n\n"
+            )
 
         message += (
-            f"📰 <b>Source:</b> {source}\n\n"
+            f"📰 <b>Source</b>\n"
+            f"{source}\n\n"
             f"🔗 <a href=\"{link}\">Read Full Story</a>\n\n"
             f"{hashtags}\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━\n"
