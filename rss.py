@@ -54,20 +54,32 @@ class RSSFetcher:
 
                         link = entry.link.strip()
 
-                      uid = RSSFetcher.article_id(
+                    uid = RSSFetcher.article_id(
     title,
     link,
 )
 
-# Skip articles that have already been processed
-if db.article_exists(
-    uid,
-    channel,
-):
+# Skip if this article has already been processed
+if db.article_exists(uid, channel):
     continue
 
 hashtags = Hashtags.generate(
     title
+)
+
+message = Formatter.build_message(
+    channel=channel,
+    entry=entry,
+    hashtags=hashtags,
+)
+
+articles.append(
+    {
+        "entry": entry,
+        "channel": channel,
+        "id": uid,
+        "message": message,
+    }
 )
 
 message = Formatter.build_message(
