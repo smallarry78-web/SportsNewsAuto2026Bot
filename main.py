@@ -125,10 +125,9 @@ async def rss_worker():
 
                 if success:
 
-                    db.save_post(
-                        article["id"],
-                        article["channel"]
-                    )
+                   db.mark_published(
+    article["id"]
+)
 
                 await asyncio.sleep(2)
 
