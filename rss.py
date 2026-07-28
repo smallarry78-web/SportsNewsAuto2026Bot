@@ -10,8 +10,19 @@ from hashtags import Hashtags
 class RSSFetcher:
 
     @staticmethod
-    def article_id(link: str) -> str:
-        return hashlib.md5(link.encode("utf-8")).hexdigest()
+    def article_id(title: str, link: str) -> str:
+        """
+        Create a unique ID using both the title and link.
+        This helps reduce reposts if a publisher changes a URL.
+        """
+
+        text = (
+            title.strip().lower()
+            + "|"
+            + link.strip().lower()
+        )
+
+        return hashlib.md5(text.encode("utf-8")).hexdigest()
 
     @staticmethod
     def fetch_new_articles():
@@ -37,12 +48,18 @@ class RSSFetcher:
                         if not hasattr(entry, "link"):
                             continue
 
-                        uid = RSSFetcher.article_id(entry.link)
+                        title = entry.title.strip()
+                        link = entry.link.strip()
+
+                        uid = RSSFetcher.article_id(
+                            title,
+                            link
+                        )
 
                         if db.is_posted(uid, channel):
                             continue
 
-                        hashtags = Hashtags.generate(entry.title)
+                        hashtags = Hashtags.generate(title)
 
                         message = Formatter.build_message(
                             channel=channel,
