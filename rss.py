@@ -1,13 +1,9 @@
 import hashlib
-import html
 import feedparser
 
+from config import CHANNEL_FEEDS, MAX_ARTICLES_PER_FEED
 from database import db
-from config import (
-    CHANNEL_FEEDS,
-    POST_TITLE,
-    MAX_ARTICLES_PER_FEED,
-)
+from formatter import Formatter
 
 
 class RSSFetcher:
@@ -15,13 +11,6 @@ class RSSFetcher:
     @staticmethod
     def article_id(link: str) -> str:
         return hashlib.md5(link.encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def clean(text: str) -> str:
-        if not text:
-            return ""
-
-        return html.unescape(text).strip()
 
     @staticmethod
     def hashtags(title: str) -> str:
@@ -38,11 +27,19 @@ class RSSFetcher:
             "chelsea",
             "liverpool",
             "manchester",
-            "barcelona",
+            "man city",
+            "man united",
             "real madrid",
+            "barcelona",
             "goal",
             "fifa",
             "uefa",
+            "tottenham",
+            "newcastle",
+            "psg",
+            "inter",
+            "milan",
+            "juventus",
         ]
 
         nba = [
@@ -52,6 +49,9 @@ class RSSFetcher:
             "warriors",
             "celtics",
             "bucks",
+            "heat",
+            "knicks",
+            "bulls",
         ]
 
         tennis = [
@@ -61,14 +61,20 @@ class RSSFetcher:
             "wta",
             "us open",
             "roland garros",
+            "australian open",
         ]
 
         formula = [
             "formula",
+            "formula 1",
             "f1",
             "grand prix",
             "verstappen",
             "hamilton",
+            "ferrari",
+            "mclaren",
+            "mercedes",
+            "red bull",
         ]
 
         if any(word in title for word in football):
@@ -89,19 +95,6 @@ class RSSFetcher:
         return " ".join(tags)
 
     @staticmethod
-    def build_message(entry):
-
-        title = RSSFetcher.clean(entry.title)
-        link = entry.link
-
-        return (
-            f"🏆 <b>{POST_TITLE}</b>\n\n"
-            f"📰 <b>{title}</b>\n\n"
-            f"👉 <a href=\"{link}\">Read Full Story</a>\n\n"
-            f"{RSSFetcher.hashtags(title)}"
-        )
-
-    @staticmethod
     def fetch_new_articles():
 
         articles = []
@@ -119,10 +112,10 @@ class RSSFetcher:
 
                     for entry in rss.entries[:MAX_ARTICLES_PER_FEED]:
 
-                        if not getattr(entry, "title", None):
+                        if not hasattr(entry, "title"):
                             continue
 
-                        if not getattr(entry, "link", None):
+                        if not hasattr(entry, "link"):
                             continue
 
                         uid = RSSFetcher.article_id(entry.link)
@@ -130,16 +123,24 @@ class RSSFetcher:
                         if db.is_posted(uid, channel):
                             continue
 
+                        hashtags = RSSFetcher.hashtags(entry.title)
+
+                        message = Formatter.build_message(
+                            channel=channel,
+                            entry=entry,
+                            hashtags=hashtags
+                        )
+
                         articles.append(
                             {
                                 "channel": channel,
                                 "id": uid,
-                                "message": RSSFetcher.build_message(entry),
+                                "message": message,
                             }
                         )
 
                 except Exception as e:
 
-                    print(f"RSS Error: {e}")
+                    print(f"RSS Error ({feed}): {e}")
 
         return articles
