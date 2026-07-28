@@ -10,6 +10,7 @@ from aiogram.types import Message, CallbackQuery
 from config import (
     BOT_TOKEN,
     CHECK_INTERVAL,
+    ADMIN_ID,
 )
 
 from membership import (
@@ -19,8 +20,12 @@ from membership import (
 
 from database import db
 from rss import RSSFetcher
+from publisher import Publisher
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
 
 bot = Bot(
     token=BOT_TOKEN,
@@ -31,9 +36,10 @@ bot = Bot(
 
 dp = Dispatcher()
 
-# ==========================================
+
+# =====================================================
 # START COMMAND
-# ==========================================
+# =====================================================
 
 @dp.message(CommandStart())
 async def start(message: Message):
@@ -49,7 +55,7 @@ async def start(message: Message):
 
         await message.answer(
             "🚫 <b>Access Denied</b>\n\n"
-            "You must join all three channels before using this bot.\n\n"
+            "You must join all required channels before using this bot.\n\n"
             "After joining, tap <b>✅ I've Joined</b>.",
             reply_markup=join_keyboard(),
         )
@@ -62,9 +68,10 @@ async def start(message: Message):
         "You'll now receive the latest sports updates."
     )
 
-# ==========================================
+
+# =====================================================
 # VERIFY BUTTON
-# ==========================================
+# =====================================================
 
 @dp.callback_query(F.data == "verify_join")
 async def verify(callback: CallbackQuery):
@@ -86,13 +93,14 @@ async def verify(callback: CallbackQuery):
     else:
 
         await callback.answer(
-            "❌ Please join all three channels first.",
+            "❌ Please join all required channels first.",
             show_alert=True,
         )
 
-# ==========================================
-# RSS POSTING ENGINE
-# ==========================================
+
+# =====================================================
+# RSS ENGINE
+# =====================================================
 
 async def rss_worker():
 
@@ -110,74 +118,65 @@ async def rss_worker():
 
             for article in articles:
 
-                try:
+                success = await Publisher.publish(
+                    bot,
+                    article
+                )
 
-                    await bot.send_message(
-                        chat_id=article["channel"],
-                        text=article["message"],
-                        disable_web_page_preview=False
-                    )
+                if success:
 
                     db.save_post(
                         article["id"],
                         article["channel"]
                     )
 
-                    logging.info(
-                        f"Posted -> {article['channel']}"
-                    )
-
-                    # Small delay to avoid Telegram flood limits
-                    await asyncio.sleep(2)
-
-                except Exception as e:
-
-                    logging.error(
-                        f"Failed posting to {article['channel']}: {e}"
-                    )
+                await asyncio.sleep(2)
 
         except Exception as e:
 
-            logging.error(
+            logging.exception(
                 f"RSS Worker Error: {e}"
             )
 
         await asyncio.sleep(CHECK_INTERVAL)
 
 
-# ==========================================
-# ADMIN COMMAND
-# ==========================================
+# =====================================================
+# ADMIN
+# =====================================================
 
 @dp.message(F.text == "/users")
 async def users(message: Message):
 
-    if message.from_user.id != 8856521475:
+    if message.from_user.id != ADMIN_ID:
         return
 
     total = db.total_users()
 
     await message.answer(
-        f"👥 Total Users: <b>{total}</b>"
+        f"👥 <b>Total Users:</b> {total}"
     )
 
 
-# ==========================================
+# =====================================================
 # STARTUP
-# ==========================================
+# =====================================================
+
 async def on_startup():
 
-    logging.info("====================================")
+    logging.info("=" * 50)
     logging.info("SportsNewsAuto2026Bot Started")
-    logging.info("RSS Monitor Running...")
-    logging.info("====================================")
+    logging.info("RSS Monitor Running")
+    logging.info("=" * 50)
 
-    asyncio.create_task(rss_worker())
+    asyncio.create_task(
+        rss_worker()
+    )
 
 
-# ==========================================
+# =====================================================
 # MAIN
-# ==========================================
+# =====================================================
 
 async def main():
 
