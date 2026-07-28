@@ -116,7 +116,7 @@ async def rss_worker():
                     f"Found {len(articles)} new article(s)."
                 )
 
-            for article in articles:
+                       for article in articles:
 
                 success = await Publisher.publish(
                     bot,
@@ -124,10 +124,10 @@ async def rss_worker():
                 )
 
                 if success:
-
-                   db.mark_published(
-    article["id"]
-)
+                    db.mark_published(
+                        article["id"],
+                        article["channel"]
+                    )
 
                 await asyncio.sleep(2)
 
