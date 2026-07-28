@@ -59,12 +59,8 @@ class RSSFetcher:
                             link,
                         )
 
-                        if db.is_posted(
-                            uid,
-                            channel,
-                        ):
-                            continue
-
+                      if db.article_exists(uid):
+    continue
                         hashtags = Hashtags.generate(
                             title
                         )
